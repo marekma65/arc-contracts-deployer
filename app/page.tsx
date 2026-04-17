@@ -27,8 +27,13 @@ interface DeployedItem {
   type: "Token" | "NFT";
   supply?: string;
   imageUrl?: string;
+  tokenId?: number;
   time: string;
 }
+
+const BASE_URL = typeof window !== "undefined"
+  ? window.location.origin
+  : "https://arc-contracts-deployer-sand.vercel.app";
 
 export default function Home() {
   const { isConnected, address } = useAccount();
@@ -55,9 +60,26 @@ export default function Home() {
     setTimeout(() => setToast(null), 5000);
   }
 
+  async function waitForReceipt(hash: string): Promise<string> {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const res = await fetch("https://rpc.testnet.arc.network", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [hash], id: 1 }),
+        });
+        const data = await res.json();
+        if (data.result?.contractAddress) return data.result.contractAddress;
+      } catch {}
+    }
+    throw new Error("Timeout waiting for contract");
+  }
+
   async function handleDeployToken() {
     if (!tokenName || !tokenSymbol || !tokenSupply || Number(tokenSupply) <= 0) return;
     setIsProcessing(true);
+    setStatusMsg("Deploying token...");
     try {
       const hash = await deployContractAsync({
         abi: erc20Contract.abi,
@@ -66,23 +88,7 @@ export default function Home() {
       });
 
       setStatusMsg("Waiting for confirmation...");
-
-      let contractAddress = "";
-      for (let i = 0; i < 30; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const res = await fetch("https://rpc.testnet.arc.network", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [hash], id: 1 }),
-          });
-          const data = await res.json();
-          if (data.result?.contractAddress) {
-            contractAddress = data.result.contractAddress;
-            break;
-          }
-        } catch {}
-      }
+      const contractAddress = await waitForReceipt(hash);
 
       setDeployedItems((prev) => [{
         address: contractAddress,
@@ -118,40 +124,18 @@ export default function Home() {
       });
 
       setStatusMsg("Step 1/2: Waiting for contract...");
-
-      let contractAddress = "";
-      for (let i = 0; i < 30; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const res = await fetch("https://rpc.testnet.arc.network", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [deployHash], id: 1 }),
-          });
-          const data = await res.json();
-          if (data.result?.contractAddress) {
-            contractAddress = data.result.contractAddress;
-            break;
-          }
-        } catch {}
-      }
-
-      if (!contractAddress) throw new Error("Contract deployment timed out");
+      const contractAddress = await waitForReceipt(deployHash);
 
       setStatusMsg("Step 2/2: Minting your NFT...");
 
-      const metadata = {
-        name: nftName,
-        description: "NFT minted on Arc Testnet",
-        image: nftImageUrl || "",
-      };
-      const uri = "data:application/json;base64," + btoa(JSON.stringify(metadata));
+      const tokenId = 0;
+      const metadataUrl = `${BASE_URL}/api/metadata?name=${encodeURIComponent(nftName)}&image=${encodeURIComponent(nftImageUrl)}&tokenId=${tokenId}`;
 
       await writeContractAsync({
         address: contractAddress as `0x${string}`,
         abi: ERC721_MINT_ABI,
         functionName: "mint",
-        args: [address, uri],
+        args: [address, metadataUrl],
       });
 
       setDeployedItems((prev) => [{
@@ -160,6 +144,7 @@ export default function Home() {
         symbol: nftSymbol,
         type: "NFT",
         imageUrl: nftImageUrl,
+        tokenId,
         time: new Date().toLocaleTimeString(),
       }, ...prev]);
 
@@ -242,9 +227,9 @@ export default function Home() {
                     <input type="text" placeholder="MNFT" value={nftSymbol} onChange={(e) => setNftSymbol(e.target.value.toUpperCase())} maxLength={8} style={{ width: "100%", boxSizing: "border-box" as const, padding: "12px 16px", borderRadius: "12px", border: "1px solid #334155", fontSize: "15px", background: "#0F172A", color: "#F8FAFC", outline: "none" }} />
                   </div>
                   <div>
-                    <p style={{ fontSize: "13px", color: "#64748B", margin: "0 0 8px" }}>Image URL <span style={{ color: "#475569", fontSize: "11px" }}>(optional – paste a link to your image)</span></p>
+                    <p style={{ fontSize: "13px", color: "#64748B", margin: "0 0 8px" }}>Image URL <span style={{ color: "#475569", fontSize: "11px" }}>(optional)</span></p>
                     <input type="text" placeholder="https://i.imgur.com/your-image.jpg" value={nftImageUrl} onChange={(e) => setNftImageUrl(e.target.value)} style={{ width: "100%", boxSizing: "border-box" as const, padding: "12px 16px", borderRadius: "12px", border: "1px solid #334155", fontSize: "14px", background: "#0F172A", color: "#F8FAFC", outline: "none" }} />
-                    <p style={{ fontSize: "11px", color: "#475569", margin: "4px 0 0" }}>Upload your image to imgur.com or any image host and paste the link here.</p>
+                    <p style={{ fontSize: "11px", color: "#475569", margin: "4px 0 0" }}>Upload your image to imgur.com and paste the direct link here.</p>
                   </div>
 
                   {nftImageUrl && (
@@ -287,8 +272,11 @@ export default function Home() {
                   {item.type === "Token" && item.supply && (
                     <p style={{ fontSize: "12px", color: "#60A5FA", margin: "6px 0 4px" }}>Supply: {Number(item.supply).toLocaleString()} {item.symbol}</p>
                   )}
+                  {item.type === "NFT" && (
+                    <p style={{ fontSize: "12px", color: "#A78BFA", margin: "6px 0 4px" }}>Token ID: {item.tokenId ?? 0}</p>
+                  )}
                   {item.type === "NFT" && item.imageUrl && (
-                    <img src={item.imageUrl} alt={item.name} style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", marginTop: "8px", display: "block" }} />
+                    <img src={item.imageUrl} alt={item.name} style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", marginTop: "4px", display: "block" }} />
                   )}
                   <a href={explorerUrl + "/address/" + item.address} target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: "11px", color: "#60A5FA", fontFamily: "monospace", wordBreak: "break-all", textDecoration: "underline", marginTop: "6px" }}>
                     {item.address}
