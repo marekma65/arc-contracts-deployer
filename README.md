@@ -51,7 +51,7 @@ The app uses pre-compiled Solidity bytecode for a simple ERC-20 and ERC-721 cont
 
 ## Live demo
 
-[arc-contracts-deployer.vercel.app](https://arc-contracts-deployer.vercel.app)
+[arc-contracts-deployer-sand.vercel.app](https://arc-contracts-deployer-sand.vercel.app)
 
 ## Network
 
