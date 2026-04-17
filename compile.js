@@ -75,6 +75,13 @@ contract SimpleNFT {
         symbol = _symbol;
     }
 
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return
+            interfaceId == 0x80ac58cd || // ERC-721
+            interfaceId == 0x5b5e139f || // ERC-721Metadata
+            interfaceId == 0x01ffc9a7;   // ERC-165
+    }
+
     function balanceOf(address owner) public view returns (uint256) {
         require(owner != address(0), "Zero address");
         return _balances[owner];
@@ -93,27 +100,52 @@ contract SimpleNFT {
 
     function approve(address to, uint256 tokenId) public {
         address owner = ownerOf(tokenId);
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner || _operatorApprovals[owner][msg.sender], "Not authorized");
         _tokenApprovals[tokenId] = to;
         emit Approval(owner, to, tokenId);
     }
 
+    function getApproved(uint256 tokenId) public view returns (address) {
+        require(_owners[tokenId] != address(0), "Token does not exist");
+        return _tokenApprovals[tokenId];
+    }
+
     function setApprovalForAll(address operator, bool approved) public {
+        require(operator != msg.sender, "Self approval");
         _operatorApprovals[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function isApprovedForAll(address owner, address operator) public view returns (bool) {
+        return _operatorApprovals[owner][operator];
     }
 
     function transferFrom(address from, address to, uint256 tokenId) public {
         require(ownerOf(tokenId) == from, "Not owner");
         require(to != address(0), "Zero address");
-        require(msg.sender == from || _tokenApprovals[tokenId] == msg.sender || _operatorApprovals[from][msg.sender], "Not authorized");
+        require(
+            msg.sender == from ||
+            _tokenApprovals[tokenId] == msg.sender ||
+            _operatorApprovals[from][msg.sender],
+            "Not authorized"
+        );
         _balances[from] -= 1;
         _balances[to] += 1;
         _owners[tokenId] = to;
+        delete _tokenApprovals[tokenId];
         emit Transfer(from, to, tokenId);
     }
 
+    function safeTransferFrom(address from, address to, uint256 tokenId) public {
+        transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory) public {
+        transferFrom(from, to, tokenId);
+    }
+
     function mint(address to, string memory uri) public returns (uint256) {
+        require(to != address(0), "Zero address");
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter += 1;
         _balances[to] += 1;
@@ -140,6 +172,13 @@ function compile(source, contractName) {
     },
   };
   const output = JSON.parse(solc.compile(JSON.stringify(input)));
+  if (output.errors) {
+    const errors = output.errors.filter(e => e.severity === "error");
+    if (errors.length > 0) {
+      console.error("Compilation errors:", errors);
+      process.exit(1);
+    }
+  }
   const contract = output.contracts[`${contractName}.sol`][contractName];
   return {
     abi: contract.abi,
