@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arc Contracts Deployer
 
-## Getting Started
+A web app for deploying ERC-20 tokens and ERC-721 NFT collections on Arc Testnet directly from your browser wallet.
 
-First, run the development server:
+Built by **wija** while exploring the Arc blockchain ecosystem.
 
+## What it does
+
+- Deploy your own ERC-20 fungible token (name, symbol, initial supply)
+- Deploy your own ERC-721 NFT collection (name, symbol, optional metadata URI)
+- All tokens are minted to your wallet on deployment
+- View deployed contracts with direct links to ArcScan explorer
+- No backend, no private keys — your wallet signs everything
+
+## How it works
+
+The app uses pre-compiled Solidity bytecode for a simple ERC-20 and ERC-721 contract. When you click Deploy, your wallet (MetaMask, Rabby, OKX, etc.) signs the deployment transaction and broadcasts it to Arc Testnet.
+
+## Built with
+
+- [Next.js](https://nextjs.org/)
+- [Wagmi](https://wagmi.sh/) + [Viem](https://viem.sh/)
+- [RainbowKit](https://www.rainbowkit.com/)
+- [Solidity](https://soliditylang.org/) + [solc](https://www.npmjs.com/package/solc)
+- [Arc Testnet](https://docs.arc.network/)
+
+## Getting started
+
+1. Clone the repo
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+   git clone https://github.com/marekma65/arc-contracts-deployer.git
+   cd arc-contracts-deployer
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies
+```bash
+   npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Add your WalletConnect Project ID in `lib/wagmi-config.ts`
+```ts
+   projectId: "YOUR_PROJECT_ID"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the app
+```bash
+   npm run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+## Live demo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+[arc-contracts-deployer.vercel.app](https://arc-contracts-deployer.vercel.app)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Network
 
-## Deploy on Vercel
+Arc Testnet — Chain ID: 5042002 — Explorer: [testnet.arcscan.app](https://testnet.arcscan.app)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Testnet only — no real funds at risk
+- Get free testnet USDC from [Circle Faucet](https://faucet.circle.com/)
+- After deploying an NFT collection, use the mint() function to mint individual tokens
