@@ -228,8 +228,8 @@ export default function Home() {
                   </div>
                   <div>
                     <p style={{ fontSize: "13px", color: "#64748B", margin: "0 0 8px" }}>Image URL <span style={{ color: "#475569", fontSize: "11px" }}>(optional)</span></p>
-                    <input type="text" placeholder="https://i.imgur.com/your-image.jpg" value={nftImageUrl} onChange={(e) => setNftImageUrl(e.target.value)} style={{ width: "100%", boxSizing: "border-box" as const, padding: "12px 16px", borderRadius: "12px", border: "1px solid #334155", fontSize: "14px", background: "#0F172A", color: "#F8FAFC", outline: "none" }} />
-                    <p style={{ fontSize: "11px", color: "#475569", margin: "4px 0 0" }}>Upload your image to imgur.com and paste the direct link here.</p>
+                    <input type="text" placeholder="https://..." value={nftImageUrl} onChange={(e) => setNftImageUrl(e.target.value)} style={{ width: "100%", boxSizing: "border-box" as const, padding: "12px 16px", borderRadius: "12px", border: "1px solid #334155", fontSize: "14px", background: "#0F172A", color: "#F8FAFC", outline: "none" }} />
+                    <p style={{ fontSize: "11px", color: "#475569", margin: "4px 0 0" }}>Paste a direct link to your image (must end with .jpg, .png, .gif, .webp etc.)</p>
                   </div>
 
                   {nftImageUrl && (
